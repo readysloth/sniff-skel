@@ -18,7 +18,7 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va
  * sure we also use "asm volatile" and noinline attributes to prevent
  * compiler from local inlining.
  */
-__attribute__((noinline)) int uprbd(void)
+__attribute__((noinline)) int uprb(void)
 {
 
   asm volatile ("");
@@ -59,42 +59,15 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  /* Attach tracepoint handler */
-  uprobe_opts.func_name = "uprbd";
-  uprobe_opts.retprobe = false;
-  /* uprobe/uretprobe expects relative offset of the function to attach
-   * to. libbpf will automatically find the offset for us if we provide the
-   * function name. If the function name is not specified, libbpf will try
-   * to use the function offset instead.
-   */
-  skel->links.uprb = bpf_program__attach_uprobe_opts(
-    skel->progs.uprb,
-    0 /* self pid */,
-    "/proc/self/exe",
-    0 /* offset for function */,
-    &uprobe_opts /* opts */);
-  if (!skel->links.uprb) {
-    err = -errno;
-    fprintf(stderr, "Failed to attach uprobe: %d\n", err);
-    goto cleanup;
-  }
+#define ATTACH_TO(FUNC, IS_RETPROBE, BINARY) \
+  { uprobe_opts.func_name = #FUNC; \
+    uprobe_opts.retprobe = IS_RETPROBE; \
+    skel->links. FUNC = bpf_program__attach_uprobe_opts(skel->progs. FUNC, -1, BINARY, 0, &uprobe_opts); \
+    if (!skel->links. FUNC) { err = -errno; fprintf(stderr, "Failed to attach uprobe: %d\n", err); goto cleanup; } }
 
-  /* we can also attach uprobe/uretprobe to any existing or future
-   * processes that use the same binary executable; to do that we need
-   * to specify -1 as PID, as we do here
-   */
-  uprobe_opts.func_name = "uprbd";
-  uprobe_opts.retprobe = true;
-  skel->links.uretprb = bpf_program__attach_uprobe_opts(
-    skel->progs.uretprb,
-    -1 /* self pid */,
-    "/proc/self/exe",
-    0 /* offset for function */,
-    &uprobe_opts /* opts */);
-  if (!skel->links.uretprb) {
-    err = -errno;
-    fprintf(stderr, "Failed to attach uprobe: %d\n", err);
-    goto cleanup;
+  for(int i = 1; i < argc; i++){
+    ATTACH_TO(uprb, false, argv[i]);
+    ATTACH_TO(uprb, true, argv[i]);
   }
 
   /* Let libbpf perform auto-attach for uprobe_sub/uretprobe_sub
@@ -118,7 +91,7 @@ int main(int argc, char **argv)
   for (i = 0; i < 100; i++) {
     /* trigger our BPF programs */
     fprintf(stderr, ".");
-    uprbd();
+    uprb();
   }
 
   while (true) {
