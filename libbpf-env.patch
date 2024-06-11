@@ -1,0 +1,24 @@
+diff --git a/src/btf.c b/src/btf.c
+index a17b4c9..34ffd21 100644
+--- a/src/btf.c
++++ b/src/btf.c
+@@ -4942,6 +4942,9 @@ static int btf_dedup_remap_types(struct btf_dedup *d)
+ struct btf *btf__load_vmlinux_btf(void)
+ {
+ 	const char *sysfs_btf_path = "/sys/kernel/btf/vmlinux";
++	if (getenv("CUSTOM_VMLINUX_BTF_PATH")) {
++		sysfs_btf_path = getenv("CUSTOM_VMLINUX_BTF_PATH");
++	}
+ 	/* fall back locations, trying to find vmlinux on disk */
+ 	const char *locations[] = {
+ 		"/boot/vmlinux-%1$s",
+@@ -4959,7 +4962,8 @@ struct btf *btf__load_vmlinux_btf(void)
+ 
+ 	/* is canonical sysfs location accessible? */
+ 	if (faccessat(AT_FDCWD, sysfs_btf_path, F_OK, AT_EACCESS) < 0) {
+-		pr_warn("kernel BTF is missing at '%s', was CONFIG_DEBUG_INFO_BTF enabled?\n",
++		pr_warn("kernel BTF is missing at '%s', was CONFIG_DEBUG_INFO_BTF enabled?\n"
++			"You can point libbpf to custom btf with environment variable CUSTOM_VMLINUX_BTF_PATH\n",
+ 			sysfs_btf_path);
+ 	} else {
+ 		btf = btf__parse(sysfs_btf_path, NULL);
