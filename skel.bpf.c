@@ -129,7 +129,7 @@ TRACE(uprb /* , ARGS */)
   return 0;
 }
 
-SEC("uretprobe")
+SEC("uretprobe/:uprb")
 TRACE(uretprb /* , ARGS */)
 {
   DEBUG_TRACE("URET START");

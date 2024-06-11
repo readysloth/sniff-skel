@@ -59,15 +59,15 @@ int main(int argc, char **argv)
     return 1;
   }
 
-#define ATTACH_TO(FUNC, IS_RETPROBE, BINARY) \
-  { uprobe_opts.func_name = #FUNC; \
+#define ATTACH_TO(FUNC, BPF_HANDLER, IS_RETPROBE, BINARY) \
+  { uprobe_opts.func_name = FUNC; \
     uprobe_opts.retprobe = IS_RETPROBE; \
-    skel->links. FUNC = bpf_program__attach_uprobe_opts(skel->progs. FUNC, -1, BINARY, 0, &uprobe_opts); \
-    if (!skel->links. FUNC) { err = -errno; fprintf(stderr, "Failed to attach uprobe: %d\n", err); goto cleanup; } }
+    skel->links.BPF_HANDLER = bpf_program__attach_uprobe_opts(skel->progs.BPF_HANDLER, -1, BINARY, 0, &uprobe_opts); \
+    if (!skel->links.BPF_HANDLER) { err = -errno; fprintf(stderr, "Failed to attach uprobe: %d\n", err); goto cleanup; } }
 
   for(int i = 1; i < argc; i++){
-    ATTACH_TO(uprb, false, argv[i]);
-    ATTACH_TO(uprb, true, argv[i]);
+    ATTACH_TO("uprb", uprb, false, argv[i]);
+    ATTACH_TO("uprb", uretprb, true, argv[i]);
   }
 
   /* Let libbpf perform auto-attach for uprobe_sub/uretprobe_sub
